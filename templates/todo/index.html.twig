@@ -1,0 +1,129 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello TodoController!{% endblock %}
+
+{% block body %}
+<style>
+    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
+    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
+    .btn-edge-roundedleft {
+        border-radius: .25rem 0 0 .25rem !important; 
+    }
+    .btn-edge-roundedright {
+        border-radius: 0 .25rem .25rem 0 !important; 
+    }
+    .done { background: #54b95430;}
+    .in-progress { background: #ffa50038;}
+    
+</style>
+<div class="alert alert-dismissible" id="success_notification">
+  <strong id="success_message"></strong>.
+</div>
+<div class="example-wrapper">
+    <div class="container">
+        <div class="row border rounded p-2 mb-4">
+            <div class="col-lg-10">
+                <input class="w-100 form-control" id="task" name="task" type="text" placeholder="Task" value"">
+            </div>
+            <div class="col-lg-2">
+                <button type="button" class="btn btn-primary" id="add">Add</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12 mx-auto pt-4 mt-4 border rounded">
+                <h2 class="text-center">Todo List</h2>
+                <hr />
+                <div class="">
+                    <ul class="list-group m-4" id="task_list">
+                    {% for todo in todos %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center {% if todo.status == 'Done' %} done {% endif %} {% if todo.status == 'In Progress' %} in-progress {% endif %}">
+                            <input type="hidden" value="{{todo.id}}" class="id_todo">
+                            {{todo.task}}
+                            <div class="p-0">
+                                <span class="badge badge-primary badge-pill">{{todo.status}}</span>
+                                <button type="button" name="in_progress" class="btn btn-outline-warning m-0 border-right-0 btn-edge-roundedleft {% if todo.status == 'Done' %} disabled {% endif %} ">In Progress</button><button type="button" name="done" class="btn btn-outline-success m-0 border-left-0 btn-edge-roundedright {% if todo.status == 'New' %} disabled {% endif %}">Done</button>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $('#success_notification').hide();
+    $('#add').on('click', function(){
+        $.ajax({
+            type: "POST",
+            url: "/addTask",
+             data: {
+                task: $('#task').val()
+            },
+        }).done(function(data) {
+            $('#task').val('');
+            $('#success_message').html(data.message);
+            $('#success_notification').addClass('alert-success').removeClass('alert-danger');
+            $('#success_notification').show(200);
+            setTimeout(()=>{
+                 $('#success_notification').hide(100);
+            }, 3000)
+            $('#task_list').append(' <li class="list-group-item d-flex justify-content-between align-items-center">\
+            <input type="hidden" value="'+data.id+'" class="id_todo">\
+                            '+data.task+'\
+                            <div class="actions p-0">\
+                            <span class="badge badge-primary badge-pill">New</span>\
+                                <button type="button" name="in_progress" class="btn btn-outline-warning m-0 border-right-0 btn-edge-roundedleft">In Progress</button><button name="done" type="button" class="btn btn-outline-success m-0 border-left-0 btn-edge-roundedright disabled">Done</button>\
+                            </div>\
+                        </li>');
+
+        });
+    })
+    $(document).on('click', 'button[name=in_progress]', function(){
+        if(!$(this).hasClass('disabled')){
+            $.ajax({
+                type: "POST",
+                url: "/editTaskStatus",
+                data: {
+                    id:  $(this).closest('.list-group-item').find('.id_todo').val(),
+                    status: 'In Progress'
+                },
+            }).done(function(data) {
+                $('#success_message').html(data.message);
+                $('#success_notification').addClass('alert-success').removeClass('alert-danger');
+                $('#success_notification').show(200);
+                setTimeout(()=>{
+                    $('#success_notification').hide(100);
+                }, 3000)
+                $('input[type="hidden"][value="'+data.id+'"]').closest('.list-group-item').find('span.badge').html(data.status);
+                $('input[type="hidden"][value="'+data.id+'"]').closest('.list-group-item').addClass('in-progress');
+            });
+        }
+    });
+
+    $(document).on('click', 'button[name=done]', function(){
+        if(!$(this).hasClass('disabled')){
+            $.ajax({
+                type: "POST",
+                url: "/editTaskStatus",
+                data: {
+                    id: $(this).closest('.list-group-item').find('.id_todo').val(),
+                    status: 'Done'
+                },
+            }).done(function(data) {
+                $('#success_message').html(data.message);
+                $('#success_notification').addClass('alert-success').removeClass('alert-danger');
+                $('#success_notification').show(200);
+                setTimeout(()=>{
+                    $('#success_notification').hide(100);
+                }, 3000);
+                $('input[type="hidden"][value="'+data.id+'"]').closest('.list-group-item').find('span.badge').html(data.status);
+                $('input[type="hidden"][value="'+data.id+'"]').closest('.list-group-item').find('button[name=in_progress]').addClass('disabled');
+                $('input[type="hidden"][value="'+data.id+'"]').closest('.list-group-item').addClass('done').removeClass('in-progress');
+            });
+        }
+    });
+    
+</script>
+{% endblock %}
+
